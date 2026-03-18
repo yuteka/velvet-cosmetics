@@ -99,7 +99,8 @@ export default function Cart() {
 
                 {/* Product */}
                 <div className="col-span-12 md:col-span-6 flex gap-4">
-                  <Link to={`/product/${item.id}`}>
+                  {/* ✅ FIXED: slug */}
+                  <Link to={`/product/${item.slug}`}>
                     <div className="overflow-hidden flex-shrink-0"
                       style={{ width: '90px', height: '110px', background: '#111009' }}>
                       <img src={item.image} alt={item.name}
@@ -112,7 +113,8 @@ export default function Cart() {
                         style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
                         {item.category}
                       </p>
-                      <Link to={`/product/${item.id}`}>
+                      {/* ✅ FIXED: slug */}
+                      <Link to={`/product/${item.slug}`}>
                         <h3 className="font-light mb-1 hover:text-yellow-300 transition-colors"
                           style={{ fontFamily: 'Cormorant Garamond, serif', color: '#faf8f4', fontSize: '1.1rem' }}>
                           {item.name}

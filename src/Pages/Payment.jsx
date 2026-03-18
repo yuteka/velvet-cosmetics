@@ -5,19 +5,55 @@ import {
   FiChevronUp, FiTruck, FiMapPin
 } from 'react-icons/fi';
 import { useCart } from '../context/CartContext';
+import { useAuth } from '../context/AuthContext';
+
+// ✅ FIXED: InputField moved OUTSIDE — prevents focus loss on every keystroke
+const InputField = ({ label, name, value, onChange, placeholder, type = 'text', half = false, errors }) => (
+  <div className={half ? 'col-span-1' : 'col-span-2'}>
+    <label className="block text-xs tracking-widest uppercase mb-2"
+      style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
+      {label}
+    </label>
+    <input
+      type={type} name={name} value={value} onChange={onChange} placeholder={placeholder}
+      className="w-full bg-transparent border px-4 py-3 text-sm outline-none tracking-wider transition-all duration-300"
+      style={{
+        borderColor: errors?.[name] ? 'rgba(180,60,60,0.6)' : 'rgba(201,169,110,0.3)',
+        color: '#faf8f4', fontFamily: 'Montserrat, sans-serif',
+      }}
+      onFocus={e => e.target.style.borderColor = '#c9a96e'}
+      onBlur={e => e.target.style.borderColor = errors?.[name] ? 'rgba(180,60,60,0.6)' : 'rgba(201,169,110,0.3)'}
+    />
+    {errors?.[name] && (
+      <p className="text-xs mt-1" style={{ color: '#e8a09a', fontFamily: 'Montserrat, sans-serif' }}>
+        {errors[name]}
+      </p>
+    )}
+  </div>
+);
 
 export default function Payment() {
   const { cartItems, cartTotal, shipping, cartGrandTotal, clearCart } = useCart();
+  const { user, saveOrder } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [step, setStep] = useState(1); // 1=shipping, 2=payment
+  const [step, setStep] = useState(1);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [expandedOrder, setExpandedOrder] = useState(false);
+  const [orderId] = useState('VLT' + Math.random().toString(36).substr(2, 9).toUpperCase());
+
+  const defaultAddress = user?.addresses?.[0];
 
   const [shippingForm, setShippingForm] = useState({
-    firstName: '', lastName: '', email: '',
-    phone: '', address: '', city: '',
-    state: '', zip: '', country: 'United States',
+    firstName: user?.firstName || '',
+    lastName: user?.lastName || '',
+    email: user?.email || '',
+    phone: defaultAddress?.phone || '',
+    address: defaultAddress?.address || '',
+    city: defaultAddress?.city || '',
+    state: defaultAddress?.state || '',
+    zip: defaultAddress?.zip || '',
+    country: defaultAddress?.country || 'United States',
   });
 
   const [paymentForm, setPaymentForm] = useState({
@@ -79,50 +115,28 @@ export default function Payment() {
     window.scrollTo(0, 0);
   };
 
-  const handlePlaceOrder = e => {
+  const handlePlaceOrder = async e => {
     e.preventDefault();
     const errs = validatePayment();
     if (Object.keys(errs).length > 0) { setErrors(errs); return; }
     setLoading(true);
-    setTimeout(() => {
+    setTimeout(async () => {
+      if (user) {
+        await saveOrder({
+          order_id: orderId,
+          date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+          total: cartGrandTotal.toFixed(2),
+          items: cartItems.map(i => ({ name: i.name, qty: i.qty, price: i.price })),
+        });
+      }
       setLoading(false);
       setOrderPlaced(true);
       clearCart();
     }, 2000);
   };
 
-  const InputField = ({ label, name, value, onChange, placeholder, type = 'text', half = false }) => (
-    <div className={half ? 'col-span-1' : 'col-span-2'}>
-      <label className="block text-xs tracking-widest uppercase mb-2"
-        style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
-        {label}
-      </label>
-      <input
-        type={type}
-        name={name}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        className="w-full bg-transparent border px-4 py-3 text-sm outline-none tracking-wider transition-all duration-300"
-        style={{
-          borderColor: errors[name] ? 'rgba(180,60,60,0.6)' : 'rgba(201,169,110,0.3)',
-          color: '#faf8f4',
-          fontFamily: 'Montserrat, sans-serif',
-        }}
-        onFocus={e => e.target.style.borderColor = '#c9a96e'}
-        onBlur={e => e.target.style.borderColor = errors[name] ? 'rgba(180,60,60,0.6)' : 'rgba(201,169,110,0.3)'}
-      />
-      {errors[name] && (
-        <p className="text-xs mt-1" style={{ color: '#e8a09a', fontFamily: 'Montserrat, sans-serif' }}>
-          {errors[name]}
-        </p>
-      )}
-    </div>
-  );
-
   // Order Success
   if (orderPlaced) {
-    const orderId = 'VLT' + Math.random().toString(36).substr(2, 9).toUpperCase();
     return (
       <div className="min-h-screen flex items-center justify-center px-6"
         style={{ background: '#0a0806', paddingTop: '80px' }}>
@@ -159,19 +173,13 @@ export default function Payment() {
             <button
               onClick={() => navigate(`/track/${orderId}`)}
               className="flex-1 py-4 text-xs tracking-widest uppercase transition-all duration-300 hover:opacity-80"
-              style={{
-                background: '#c9a96e', color: '#0a0806',
-                fontFamily: 'Montserrat, sans-serif', fontWeight: 600,
-              }}>
+              style={{ background: '#c9a96e', color: '#0a0806', fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}>
               Track Order
             </button>
             <button
               onClick={() => navigate('/')}
               className="flex-1 py-4 text-xs tracking-widest uppercase transition-all duration-300 hover:opacity-70 border"
-              style={{
-                borderColor: 'rgba(201,169,110,0.3)', color: '#c9a96e',
-                fontFamily: 'Montserrat, sans-serif',
-              }}>
+              style={{ borderColor: 'rgba(201,169,110,0.3)', color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
               Continue Shopping
             </button>
           </div>
@@ -198,10 +206,7 @@ export default function Payment() {
 
         {/* Steps */}
         <div className="flex items-center gap-4 mb-10">
-          {[
-            { n: 1, label: 'Shipping' },
-            { n: 2, label: 'Payment' },
-          ].map(({ n, label }) => (
+          {[{ n: 1, label: 'Shipping' }, { n: 2, label: 'Payment' }].map(({ n, label }) => (
             <div key={n} className="flex items-center gap-3">
               <div className="flex items-center gap-2">
                 <div className="w-7 h-7 rounded-full flex items-center justify-center text-xs"
@@ -209,20 +214,17 @@ export default function Payment() {
                     background: step >= n ? '#c9a96e' : 'transparent',
                     border: `1px solid ${step >= n ? '#c9a96e' : 'rgba(201,169,110,0.3)'}`,
                     color: step >= n ? '#0a0806' : '#7a6e5f',
-                    fontFamily: 'Montserrat, sans-serif',
-                    fontWeight: 600,
+                    fontFamily: 'Montserrat, sans-serif', fontWeight: 600,
                   }}>
                   {step > n ? <FiCheck size={12} /> : n}
                 </div>
                 <span className="text-xs tracking-widest uppercase"
-                  style={{
-                    color: step >= n ? '#c9a96e' : '#7a6e5f',
-                    fontFamily: 'Montserrat, sans-serif',
-                  }}>
+                  style={{ color: step >= n ? '#c9a96e' : '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
                   {label}
                 </span>
               </div>
-              {n < 2 && <div className="w-12 h-px" style={{ background: step > n ? '#c9a96e' : 'rgba(201,169,110,0.2)' }} />}
+              {n < 2 && <div className="w-12 h-px"
+                style={{ background: step > n ? '#c9a96e' : 'rgba(201,169,110,0.2)' }} />}
             </div>
           ))}
         </div>
@@ -231,6 +233,45 @@ export default function Payment() {
 
           {/* Left — Forms */}
           <div className="lg:col-span-2">
+
+            {/* Saved Addresses */}
+            {step === 1 && user?.addresses?.length > 0 && (
+              <div className="p-5 mb-6"
+                style={{ background: '#111009', border: '1px solid rgba(201,169,110,0.15)' }}>
+                <p className="text-xs tracking-widest uppercase mb-4"
+                  style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
+                  Saved Addresses
+                </p>
+                <div className="space-y-3">
+                  {user.addresses.map(addr => (
+                    <div key={addr.id}
+                      className="flex items-center gap-3 p-3 cursor-pointer transition-all duration-300"
+                      style={{ border: '1px solid rgba(201,169,110,0.2)' }}
+                      onClick={() => setShippingForm({
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        email: user.email,
+                        phone: addr.phone || '',
+                        address: addr.address,
+                        city: addr.city,
+                        state: addr.state || '',
+                        zip: addr.zip,
+                        country: addr.country || 'United States',
+                      })}>
+                      <FiMapPin size={14} style={{ color: '#c9a96e' }} />
+                      <div>
+                        <p className="text-xs" style={{ color: '#faf8f4', fontFamily: 'Montserrat, sans-serif' }}>
+                          {addr.name}
+                        </p>
+                        <p className="text-xs" style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
+                          {addr.address}, {addr.city}, {addr.zip}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* STEP 1 — Shipping */}
             {step === 1 && (
@@ -246,38 +287,28 @@ export default function Payment() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <InputField label="First Name" name="firstName" value={shippingForm.firstName}
-                      onChange={handleShippingChange} placeholder="Jane" half />
+                      onChange={handleShippingChange} placeholder="Jane" half errors={errors} />
                     <InputField label="Last Name" name="lastName" value={shippingForm.lastName}
-                      onChange={handleShippingChange} placeholder="Doe" half />
+                      onChange={handleShippingChange} placeholder="Doe" half errors={errors} />
                     <InputField label="Email" name="email" type="email" value={shippingForm.email}
-                      onChange={handleShippingChange} placeholder="hello@example.com" />
+                      onChange={handleShippingChange} placeholder="hello@example.com" errors={errors} />
                     <InputField label="Phone" name="phone" value={shippingForm.phone}
-                      onChange={handleShippingChange} placeholder="+1 234 567 8900" />
+                      onChange={handleShippingChange} placeholder="+91 98765 43210" errors={errors} />
                     <InputField label="Street Address" name="address" value={shippingForm.address}
-                      onChange={handleShippingChange} placeholder="123 Beauty Lane" />
+                      onChange={handleShippingChange} placeholder="123 Main Street" errors={errors} />
                     <InputField label="City" name="city" value={shippingForm.city}
-                      onChange={handleShippingChange} placeholder="New York" half />
+                      onChange={handleShippingChange} placeholder="Chennai" half errors={errors} />
                     <InputField label="State" name="state" value={shippingForm.state}
-                      onChange={handleShippingChange} placeholder="NY" half />
+                      onChange={handleShippingChange} placeholder="Tamil Nadu" half errors={errors} />
                     <InputField label="ZIP Code" name="zip" value={shippingForm.zip}
-                      onChange={handleShippingChange} placeholder="10001" half />
+                      onChange={handleShippingChange} placeholder="600001" half errors={errors} />
                     <div className="col-span-1">
                       <label className="block text-xs tracking-widest uppercase mb-2"
-                        style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
-                        Country
-                      </label>
-                      <select
-                        name="country"
-                        value={shippingForm.country}
-                        onChange={handleShippingChange}
+                        style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>Country</label>
+                      <select name="country" value={shippingForm.country} onChange={handleShippingChange}
                         className="w-full bg-transparent border px-4 py-3 text-sm outline-none"
-                        style={{
-                          borderColor: 'rgba(201,169,110,0.3)',
-                          color: '#faf8f4',
-                          fontFamily: 'Montserrat, sans-serif',
-                          background: '#111009',
-                        }}>
-                        {['United States', 'United Kingdom', 'France', 'Germany', 'Canada', 'Australia', 'India'].map(c => (
+                        style={{ borderColor: 'rgba(201,169,110,0.3)', color: '#faf8f4', fontFamily: 'Montserrat, sans-serif', background: '#111009' }}>
+                        {['India', 'United States', 'United Kingdom', 'France', 'Germany', 'Canada', 'Australia'].map(c => (
                           <option key={c} value={c} style={{ background: '#111009' }}>{c}</option>
                         ))}
                       </select>
@@ -302,12 +333,11 @@ export default function Payment() {
                       { id: 'overnight', label: 'Overnight Shipping', time: '1 business day', price: '$39.99' },
                     ].map(method => (
                       <label key={method.id}
-                        className="flex items-center justify-between p-4 cursor-pointer transition-all duration-300"
+                        className="flex items-center justify-between p-4 cursor-pointer"
                         style={{ border: '1px solid rgba(201,169,110,0.2)' }}>
                         <div className="flex items-center gap-3">
                           <input type="radio" name="shippingMethod" value={method.id}
-                            defaultChecked={method.id === 'standard'}
-                            className="accent-yellow-600" />
+                            defaultChecked={method.id === 'standard'} className="accent-yellow-600" />
                           <div>
                             <p className="text-sm" style={{ color: '#faf8f4', fontFamily: 'Montserrat, sans-serif' }}>
                               {method.label}
@@ -328,10 +358,7 @@ export default function Payment() {
 
                 <button type="submit"
                   className="w-full py-4 text-xs tracking-widest uppercase transition-all duration-300 hover:opacity-80"
-                  style={{
-                    background: '#c9a96e', color: '#0a0806',
-                    fontFamily: 'Montserrat, sans-serif', fontWeight: 600,
-                  }}>
+                  style={{ background: '#c9a96e', color: '#0a0806', fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}>
                   Continue to Payment
                 </button>
               </form>
@@ -347,10 +374,10 @@ export default function Payment() {
                   <div className="flex items-center gap-3">
                     <FiCheck size={14} style={{ color: '#c9a96e' }} />
                     <div>
-                      <p className="text-xs tracking-wider" style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
-                        Shipping to
-                      </p>
-                      <p className="text-sm" style={{ color: '#faf8f4', fontFamily: 'Montserrat, sans-serif' }}>
+                      <p className="text-xs tracking-wider"
+                        style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>Shipping to</p>
+                      <p className="text-sm"
+                        style={{ color: '#faf8f4', fontFamily: 'Montserrat, sans-serif' }}>
                         {shippingForm.firstName} {shippingForm.lastName} — {shippingForm.city}, {shippingForm.country}
                       </p>
                     </div>
@@ -362,7 +389,7 @@ export default function Payment() {
                   </button>
                 </div>
 
-                {/* Payment Method Tabs */}
+                {/* Payment Method */}
                 <div className="p-6 mb-6"
                   style={{ background: '#111009', border: '1px solid rgba(201,169,110,0.15)' }}>
                   <div className="flex items-center gap-3 mb-6">
@@ -373,7 +400,6 @@ export default function Payment() {
                     </h2>
                   </div>
 
-                  {/* Method Selector */}
                   <div className="flex gap-3 mb-6">
                     {[
                       { id: 'card', label: 'Credit Card' },
@@ -395,25 +421,23 @@ export default function Payment() {
                     ))}
                   </div>
 
-                  {/* Card Form */}
                   {paymentForm.method === 'card' && (
                     <div className="grid grid-cols-2 gap-4">
                       <InputField label="Cardholder Name" name="cardName"
                         value={paymentForm.cardName} onChange={handlePaymentChange}
-                        placeholder="Jane Doe" />
+                        placeholder="Jane Doe" errors={errors} />
                       <InputField label="Card Number" name="cardNumber"
                         value={paymentForm.cardNumber} onChange={handlePaymentChange}
-                        placeholder="1234 5678 9012 3456" />
+                        placeholder="1234 5678 9012 3456" errors={errors} />
                       <InputField label="Expiry Date" name="expiry"
                         value={paymentForm.expiry} onChange={handlePaymentChange}
-                        placeholder="MM/YY" half />
+                        placeholder="MM/YY" half errors={errors} />
                       <InputField label="CVV" name="cvv"
                         value={paymentForm.cvv} onChange={handlePaymentChange}
-                        placeholder="•••" half />
+                        placeholder="•••" half errors={errors} />
                     </div>
                   )}
 
-                  {/* PayPal */}
                   {paymentForm.method === 'paypal' && (
                     <div className="text-center py-8">
                       <p className="text-sm mb-4" style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
@@ -426,7 +450,6 @@ export default function Payment() {
                     </div>
                   )}
 
-                  {/* Apple Pay */}
                   {paymentForm.method === 'apple' && (
                     <div className="text-center py-8">
                       <p className="text-sm mb-4" style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
@@ -434,13 +457,12 @@ export default function Payment() {
                       </p>
                       <div className="inline-block px-8 py-3 text-sm tracking-wider"
                         style={{ background: '#000', color: '#fff', borderRadius: '4px' }}>
-                         Pay
+                        ⌘ Pay
                       </div>
                     </div>
                   )}
                 </div>
 
-                {/* Security Note */}
                 <div className="flex items-center gap-2 mb-6">
                   <FiLock size={12} style={{ color: '#c9a96e' }} />
                   <p className="text-xs tracking-wider"
@@ -453,9 +475,7 @@ export default function Payment() {
                   className="w-full py-4 text-xs tracking-widest uppercase transition-all duration-300 hover:opacity-80 flex items-center justify-center gap-2"
                   style={{
                     background: loading ? 'rgba(201,169,110,0.5)' : '#c9a96e',
-                    color: '#0a0806',
-                    fontFamily: 'Montserrat, sans-serif',
-                    fontWeight: 600,
+                    color: '#0a0806', fontFamily: 'Montserrat, sans-serif', fontWeight: 600,
                   }}>
                   <FiLock size={12} />
                   {loading ? 'Processing...' : `Place Order — $${cartGrandTotal.toFixed(2)}`}
@@ -468,8 +488,7 @@ export default function Payment() {
           <div className="lg:col-span-1">
             <div className="p-6 sticky top-24"
               style={{ background: '#111009', border: '1px solid rgba(201,169,110,0.15)' }}>
-              <button
-                onClick={() => setExpandedOrder(!expandedOrder)}
+              <button onClick={() => setExpandedOrder(!expandedOrder)}
                 className="w-full flex items-center justify-between mb-4">
                 <h2 className="text-lg font-light"
                   style={{ fontFamily: 'Cormorant Garamond, serif', color: '#faf8f4' }}>
@@ -482,7 +501,6 @@ export default function Payment() {
                 </div>
               </button>
 
-              {/* Items */}
               {expandedOrder && (
                 <div className="space-y-3 mb-4 pb-4"
                   style={{ borderBottom: '1px solid rgba(201,169,110,0.15)' }}>
@@ -490,8 +508,7 @@ export default function Payment() {
                     <div key={i} className="flex gap-3">
                       <div className="flex-shrink-0 overflow-hidden"
                         style={{ width: '50px', height: '60px', background: '#0a0806' }}>
-                        <img src={item.image} alt={item.name}
-                          className="w-full h-full object-cover" />
+                        <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                       </div>
                       <div className="flex-1">
                         <p className="text-xs font-light"
@@ -510,7 +527,6 @@ export default function Payment() {
                 </div>
               )}
 
-              {/* Price Breakdown */}
               <div className="space-y-3 pb-4"
                 style={{ borderBottom: '1px solid rgba(201,169,110,0.15)' }}>
                 <div className="flex justify-between text-xs tracking-wider"
@@ -520,7 +536,7 @@ export default function Payment() {
                 </div>
                 <div className="flex justify-between text-xs tracking-wider"
                   style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
-                  <span>Shipping</span>
+                  <span className="flex items-center gap-1"><FiTruck size={11} /> Shipping</span>
                   <span style={{ color: shipping === 0 ? '#c9a96e' : '#7a6e5f' }}>
                     {shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}
                   </span>
@@ -529,9 +545,7 @@ export default function Payment() {
 
               <div className="flex justify-between items-center py-4">
                 <span className="text-sm tracking-widest uppercase"
-                  style={{ color: '#faf8f4', fontFamily: 'Montserrat, sans-serif' }}>
-                  Total
-                </span>
+                  style={{ color: '#faf8f4', fontFamily: 'Montserrat, sans-serif' }}>Total</span>
                 <span className="text-2xl font-light"
                   style={{ color: '#c9a96e', fontFamily: 'Cormorant Garamond, serif' }}>
                   ${cartGrandTotal.toFixed(2)}

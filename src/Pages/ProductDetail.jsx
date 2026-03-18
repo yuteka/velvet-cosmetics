@@ -8,9 +8,9 @@ import { products } from '../data/products';
 import { useCart } from '../context/CartContext';
 
 export default function ProductDetail() {
-  const { id } = useParams();
+  const { slug } = useParams();
   const navigate = useNavigate();
-  const product = products.find(p => p.id === parseInt(id));
+  const product = products.find(p => p.slug === slug);
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
 
   const [selectedImage, setSelectedImage] = useState(0);
@@ -77,7 +77,6 @@ export default function ProductDetail() {
 
           {/* Left — Images */}
           <div className="space-y-4">
-            {/* Main Image */}
             <div className="relative overflow-hidden group"
               style={{ height: '520px', background: '#111009' }}>
               <img
@@ -85,7 +84,6 @@ export default function ProductDetail() {
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
-              {/* Badge */}
               {product.badge && (
                 <div className="absolute top-4 left-4 px-3 py-1 text-xs tracking-widest"
                   style={{
@@ -97,7 +95,6 @@ export default function ProductDetail() {
                   {product.badge}
                 </div>
               )}
-              {/* Wishlist */}
               <button
                 onClick={() => toggleWishlist(product.id)}
                 className="absolute top-4 right-4 w-10 h-10 flex items-center justify-center transition-all duration-300"
@@ -108,7 +105,6 @@ export default function ProductDetail() {
                 }}>
                 <FiHeart size={16} fill={isWishlisted(product.id) ? '#c9a96e' : 'none'} />
               </button>
-              {/* Discount Badge */}
               {discount > 0 && (
                 <div className="absolute bottom-4 left-4 px-3 py-1 text-xs tracking-widest"
                   style={{
@@ -122,7 +118,6 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Thumbnail Images */}
             {product.images && product.images.length > 1 && (
               <div className="flex gap-3">
                 {product.images.map((img, i) => (
@@ -146,14 +141,10 @@ export default function ProductDetail() {
 
           {/* Right — Product Info */}
           <div className="flex flex-col">
-
-            {/* Category */}
             <p className="text-xs tracking-[0.4em] uppercase mb-3"
               style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
               {product.category}
             </p>
-
-            {/* Name */}
             <h1 className="font-light mb-4"
               style={{
                 fontFamily: 'Cormorant Garamond, serif',
@@ -163,8 +154,6 @@ export default function ProductDetail() {
               }}>
               {product.name}
             </h1>
-
-            {/* Rating */}
             <div className="flex items-center gap-3 mb-6">
               <div className="flex items-center gap-1">
                 {[...Array(5)].map((_, i) => (
@@ -180,8 +169,6 @@ export default function ProductDetail() {
                 ({product.reviews} reviews)
               </span>
             </div>
-
-            {/* Price */}
             <div className="flex items-baseline gap-4 mb-6 pb-6"
               style={{ borderBottom: '1px solid rgba(201,169,110,0.15)' }}>
               <span className="text-3xl font-light"
@@ -207,7 +194,6 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {/* Shades */}
             {product.shades && product.shades.length > 0 && (
               <div className="mb-6">
                 <p className="text-xs tracking-widest uppercase mb-3"
@@ -232,7 +218,6 @@ export default function ProductDetail() {
               </div>
             )}
 
-            {/* Quantity */}
             <div className="mb-6">
               <p className="text-xs tracking-widest uppercase mb-3"
                 style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
@@ -241,8 +226,7 @@ export default function ProductDetail() {
               <div className="flex items-center gap-4">
                 <div className="flex items-center border"
                   style={{ borderColor: 'rgba(201,169,110,0.3)' }}>
-                  <button
-                    onClick={() => setQty(q => Math.max(1, q - 1))}
+                  <button onClick={() => setQty(q => Math.max(1, q - 1))}
                     className="w-10 h-10 flex items-center justify-center transition-all duration-300 hover:opacity-70"
                     style={{ color: '#c9a96e' }}>
                     <FiMinus size={14} />
@@ -251,8 +235,7 @@ export default function ProductDetail() {
                     style={{ color: '#faf8f4', fontFamily: 'Montserrat, sans-serif' }}>
                     {qty}
                   </span>
-                  <button
-                    onClick={() => setQty(q => q + 1)}
+                  <button onClick={() => setQty(q => q + 1)}
                     className="w-10 h-10 flex items-center justify-center transition-all duration-300 hover:opacity-70"
                     style={{ color: '#c9a96e' }}>
                     <FiPlus size={14} />
@@ -267,7 +250,6 @@ export default function ProductDetail() {
               </div>
             </div>
 
-            {/* Buttons */}
             <div className="flex gap-3 mb-8">
               <button
                 onClick={handleAddToCart}
@@ -294,7 +276,6 @@ export default function ProductDetail() {
               </button>
             </div>
 
-            {/* Shipping Info */}
             <div className="space-y-3 mb-8 p-4"
               style={{ background: '#111009', border: '1px solid rgba(201,169,110,0.1)' }}>
               {[
@@ -312,7 +293,6 @@ export default function ProductDetail() {
               ))}
             </div>
 
-            {/* Tabs */}
             <div>
               <div className="flex gap-6 mb-4"
                 style={{ borderBottom: '1px solid rgba(201,169,110,0.15)' }}>
@@ -366,7 +346,7 @@ export default function ProductDetail() {
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
             {relatedProducts.map(p => (
-              <Link to={`/product/${p.id}`} key={p.id}
+              <Link to={`/product/${p.slug}`} key={p.id}
                 className="group"
                 style={{ background: '#111009', border: '1px solid rgba(201,169,110,0.1)' }}>
                 <div className="overflow-hidden" style={{ height: '200px' }}>
@@ -383,7 +363,8 @@ export default function ProductDetail() {
                     style={{ fontFamily: 'Cormorant Garamond, serif', color: '#faf8f4' }}>
                     {p.name}
                   </h3>
-                  <span className="text-sm" style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
+                  <span className="text-sm"
+                    style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
                     ${p.price}
                   </span>
                 </div>
