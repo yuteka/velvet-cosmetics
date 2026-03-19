@@ -7,7 +7,7 @@ import {
 import { useCart } from '../context/CartContext';
 import { useAuth } from '../context/AuthContext';
 
-// ✅ FIXED: InputField moved OUTSIDE — prevents focus loss on every keystroke
+// FIXED: InputField moved OUTSIDE — prevents focus loss on every keystroke
 const InputField = ({ label, name, value, onChange, placeholder, type = 'text', half = false, errors }) => (
   <div className={half ? 'col-span-1' : 'col-span-2'}>
     <label className="block text-xs tracking-widest uppercase mb-2"
@@ -127,6 +127,16 @@ export default function Payment() {
           date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
           total: cartGrandTotal.toFixed(2),
           items: cartItems.map(i => ({ name: i.name, qty: i.qty, price: i.price })),
+          shipping_name: `${shippingForm.firstName} ${shippingForm.lastName}`,
+          shipping_address: shippingForm.address,
+          shipping_city: shippingForm.city,
+          shipping_state: shippingForm.state,
+          shipping_zip: shippingForm.zip,
+          shipping_country: shippingForm.country,
+          shipping_email: shippingForm.email,
+          shipping_phone: shippingForm.phone,
+          payment_method: paymentForm.method,
+          status: 'Processing',
         });
       }
       setLoading(false);
@@ -134,7 +144,6 @@ export default function Payment() {
       clearCart();
     }, 2000);
   };
-
   // Order Success
   if (orderPlaced) {
     return (

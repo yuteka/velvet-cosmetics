@@ -1,14 +1,33 @@
-const BASE = 'https://dxhqfpwwhbactkfyksoo.supabase.co/storage/v1/object/public/products';
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { FiHeart, FiShoppingBag, FiStar, FiArrowRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { products, categories } from '../data/products';
 import { useCart } from '../context/CartContext';
+import { getImageUrl } from '../lib/supabase';
 
 function ProductCard({ product, addToCart, toggleWishlist, isWishlisted }) {
   const [currentImg, setCurrentImg] = useState(0);
   const images = product.images?.length ? product.images : [product.image];
   const touchStartX = useRef(0);
+  const intervalRef = useRef(null);
+
+  //  Auto slide every 2 seconds
+  useEffect(() => {
+    if (images.length <= 1) return;
+    intervalRef.current = setInterval(() => {
+      setCurrentImg(i => (i === images.length - 1 ? 0 : i + 1));
+    }, 2000);
+    return () => clearInterval(intervalRef.current);
+  }, [images.length]);
+
+  const handleMouseEnter = () => clearInterval(intervalRef.current);
+
+  const handleMouseLeave = () => {
+    if (images.length <= 1) return;
+    intervalRef.current = setInterval(() => {
+      setCurrentImg(i => (i === images.length - 1 ? 0 : i + 1));
+    }, 2000);
+  };
 
   const prevImg = (e) => {
     e.preventDefault();
@@ -63,33 +82,37 @@ function ProductCard({ product, addToCart, toggleWishlist, isWishlisted }) {
       {/* Image Carousel */}
       <div className="relative overflow-hidden"
         style={{ height: '280px' }}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
         onTouchStart={onTouchStart}
         onTouchEnd={onTouchEnd}>
 
-        {/* Images */}
         <Link to={`/product/${product.slug}`}>
-          <div className="flex h-full transition-transform duration-500 ease-in-out"
+          <div className="flex h-full transition-transform duration-700 ease-in-out"
             style={{ transform: `translateX(-${currentImg * 100}%)` }}>
             {images.map((img, i) => (
-              <img key={i} src={img} alt={`${product.name} ${i + 1}`}
-                className="w-full h-full object-cover flex-shrink-0"
-                draggable="false"
-                style={{ minWidth: '100%' }} />
+              <div key={i} className="w-full h-full flex-shrink-0 overflow-hidden"
+                style={{ minWidth: '100%' }}>
+                <img src={img} alt={`${product.name} ${i + 1}`}
+                  className="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-105"
+                  draggable="false"
+                  style={{ minWidth: '100%' }} />
+              </div>
             ))}
           </div>
         </Link>
 
-        {/* Prev/Next arrows — show on hover */}
+        {/* Prev/Next arrows */}
         {images.length > 1 && (
           <>
             <button onClick={prevImg}
               className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
-              style={{ background: 'rgba(10,8,6,0.7)', color: '#c9a96e' }}>
+              style={{ background: 'rgba(10,8,6,0.7)', color: '#c9a96e', zIndex: 10 }}>
               <FiChevronLeft size={14} />
             </button>
             <button onClick={nextImg}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
-              style={{ background: 'rgba(10,8,6,0.7)', color: '#c9a96e' }}>
+              style={{ background: 'rgba(10,8,6,0.7)', color: '#c9a96e', zIndex: 10 }}>
               <FiChevronRight size={14} />
             </button>
           </>
@@ -97,7 +120,7 @@ function ProductCard({ product, addToCart, toggleWishlist, isWishlisted }) {
 
         {/* Dots */}
         {images.length > 1 && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5">
+          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5" style={{ zIndex: 10 }}>
             {images.map((_, i) => (
               <button key={i}
                 onClick={(e) => { e.preventDefault(); e.stopPropagation(); setCurrentImg(i); }}
@@ -201,7 +224,7 @@ export default function Home() {
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="https://dxhqfpwwhbactkfyksoo.supabase.co/storage/v1/object/public/products/hero/hero.jpg"
+            src={getImageUrl('hero/hero.jpg')}
             alt="hero"
             className="w-full h-full object-contain md:object-cover"
             style={{ opacity: 0.3 }}
@@ -273,12 +296,12 @@ export default function Home() {
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
           {[
-            { name: 'Face', image: 'https://dxhqfpwwhbactkfyksoo.supabase.co/storage/v1/object/public/products/categories/cat-eyes.jpg' },
-            { name: 'Eyes', image: 'https://dxhqfpwwhbactkfyksoo.supabase.co/storage/v1/object/public/products/categories/cat-face.jpg' },
-            { name: 'Lips', image: 'https://dxhqfpwwhbactkfyksoo.supabase.co/storage/v1/object/public/products/categories/cat-lips.jpg' },
-            { name: 'Skincare', image: 'https://dxhqfpwwhbactkfyksoo.supabase.co/storage/v1/object/public/products/categories/cat-skincare.jpg' },
-            { name: 'Fragrance', image: 'https://dxhqfpwwhbactkfyksoo.supabase.co/storage/v1/object/public/products/categories/cat-fragrance.jpg' },
-            { name: 'Sale', image: 'https://dxhqfpwwhbactkfyksoo.supabase.co/storage/v1/object/public/products/categories/cat-sale.jpg' },
+            { name: 'Face', image: getImageUrl('categories/cat-face.jpg') },
+            { name: 'Eyes', image: getImageUrl('categories/cat-eyes.jpg') },
+            { name: 'Lips', image: getImageUrl('categories/cat-lips.jpg') },
+            { name: 'Skincare', image: getImageUrl('categories/cat-skincare.jpg') },
+            { name: 'Fragrance', image: getImageUrl('categories/cat-fragrance.jpg') },
+            { name: 'Sale', image: getImageUrl('categories/cat-sale.jpg') },
           ].map(cat => (
             <div key={cat.name}
               className="relative overflow-hidden group cursor-pointer"
@@ -349,7 +372,7 @@ export default function Home() {
       <section className="relative py-24 px-6 text-center overflow-hidden">
         <div className="absolute inset-0">
           <img
-            src="https://dxhqfpwwhbactkfyksoo.supabase.co/storage/v1/object/public/products/hero/banner.jpg"
+            src={getImageUrl('hero/banner.jpg')}
             alt="banner"
             className="w-full h-full object-cover"
             style={{ opacity: 0.2 }}

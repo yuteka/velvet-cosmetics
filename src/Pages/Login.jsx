@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { FiMail, FiLock, FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
-
+import { getImageUrl } from '../lib/supabase';
 export default function Login() {
   const [form, setForm] = useState({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
@@ -31,7 +31,7 @@ export default function Login() {
 
       {/* Left — Image */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden" style={{ height: 'calc(100vh - 80px)' }}>
-        <img src="https://dxhqfpwwhbactkfyksoo.supabase.co/storage/v1/object/public/products/auth/login-bg.jpg"
+        <img src={getImageUrl('auth/login-bg.jpg')}
           alt="luxury cosmetics" className="w-full h-full object-cover" style={{ opacity: 0.6 }} />
         <div className="absolute inset-0"
           style={{ background: 'linear-gradient(to right, rgba(10,8,6,0) 0%, rgba(10,8,6,0.8) 100%)' }} />

@@ -22,7 +22,7 @@ export default function ProductDetail() {
   if (!product) {
     return (
       <div className="min-h-screen flex items-center justify-center"
-        style={{ background: '#0a0806', paddingTop: '80px' }}>
+        style={{ background: '#0a0806', paddingTop: '100px' }}>
         <div className="text-center">
           <h2 className="text-3xl font-light mb-4"
             style={{ fontFamily: 'Cormorant Garamond, serif', color: '#faf8f4' }}>
@@ -56,7 +56,7 @@ export default function ProductDetail() {
     <div style={{ background: '#0a0806', minHeight: '100vh', paddingTop: '80px' }}>
 
       {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-6 py-4">
+      <div className="max-w-7xl mx-auto px-6 py-4" style={{ paddingTop: '2rem' }} >
         <div className="flex items-center gap-2 text-xs tracking-wider"
           style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
           <Link to="/" style={{ color: '#7a6e5f' }}
@@ -282,7 +282,7 @@ export default function ProductDetail() {
                 { icon: FiTruck, text: 'Free shipping on orders over $100' },
                 { icon: FiRefreshCw, text: '30-day hassle-free returns' },
                 { icon: FiShield, text: '100% authentic luxury products' },
-              ].map(({ icon: Icon, text }) => (
+              ].map(({ icon:Icon,text }) => (
                 <div key={text} className="flex items-center gap-3">
                   <Icon size={14} style={{ color: '#c9a96e' }} />
                   <span className="text-xs tracking-wider"
