@@ -1,23 +1,87 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import {
   FiHeart, FiShoppingBag, FiStar, FiArrowLeft,
   FiTruck, FiRefreshCw, FiShield, FiMinus, FiPlus
 } from 'react-icons/fi';
-import { products } from '../data/products';
+import { products as staticProducts } from '../data/products';
 import { useCart } from '../context/CartContext';
+import { supabase } from '../lib/supabase';
 
 export default function ProductDetail() {
   const { slug } = useParams();
   const navigate = useNavigate();
-  const product = products.find(p => p.slug === slug);
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
 
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [selectedShade, setSelectedShade] = useState(null);
   const [qty, setQty] = useState(1);
   const [activeTab, setActiveTab] = useState('description');
   const [added, setAdded] = useState(false);
+  const [relatedProducts, setRelatedProducts] = useState([]);
+
+  useEffect(() => {
+    fetchProduct();
+  }, [slug]);
+
+  const fetchProduct = async () => {
+    setLoading(true);
+    setSelectedImage(0);
+
+    // First check static products
+    const staticProduct = staticProducts.find(p => p.slug === slug);
+    if (staticProduct) {
+      setProduct(staticProduct);
+      setRelatedProducts(
+        staticProducts.filter(p => p.category === staticProduct.category && p.id !== staticProduct.id).slice(0, 4)
+      );
+      setLoading(false);
+      return;
+    }
+
+    // Then check Supabase
+    const { data } = await supabase
+      .from('products')
+      .select('*')
+      .eq('slug', slug)
+      .single();
+
+    if (data) {
+      // Normalize Supabase fields
+      const normalized = {
+        ...data,
+        originalPrice: data.original_price,
+        inStock: data.in_stock,
+      };
+      setProduct(normalized);
+
+      // Fetch related from Supabase
+      const { data: related } = await supabase
+        .from('products')
+        .select('*')
+        .eq('category', data.category)
+        .neq('id', data.id)
+        .limit(4);
+
+      setRelatedProducts(
+        (related || []).map(p => ({ ...p, originalPrice: p.original_price, inStock: p.in_stock }))
+      );
+    }
+
+    setLoading(false);
+  };
+
+  if (loading) return (
+    <div className="min-h-screen flex items-center justify-center"
+      style={{ background: '#0a0806' }}>
+      <p className="text-xs tracking-widest uppercase"
+        style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
+        Loading...
+      </p>
+    </div>
+  );
 
   if (!product) {
     return (
@@ -39,24 +103,22 @@ export default function ProductDetail() {
   }
 
   const handleAddToCart = () => {
-    addToCart(product, selectedShade);
+    addToCart({ ...product, qty }, selectedShade);
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
   };
-
-  const relatedProducts = products.filter(
-    p => p.category === product.category && p.id !== product.id
-  ).slice(0, 4);
 
   const discount = product.originalPrice > product.price
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : 0;
 
+  const images = product.images?.length ? product.images : [product.image];
+
   return (
     <div style={{ background: '#0a0806', minHeight: '100vh', paddingTop: '80px' }}>
 
       {/* Breadcrumb */}
-      <div className="max-w-7xl mx-auto px-6 py-4" style={{ paddingTop: '2rem' }} >
+      <div className="max-w-7xl mx-auto px-6 py-4" style={{ paddingTop: '2rem' }}>
         <div className="flex items-center gap-2 text-xs tracking-wider"
           style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
           <Link to="/" style={{ color: '#7a6e5f' }}
@@ -65,7 +127,7 @@ export default function ProductDetail() {
             Home
           </Link>
           <span>›</span>
-          <span style={{ color: '#7a6e5f' }}>{product.category}</span>
+          <span>{product.category}</span>
           <span>›</span>
           <span style={{ color: '#c9a96e' }}>{product.name}</span>
         </div>
@@ -80,7 +142,7 @@ export default function ProductDetail() {
             <div className="relative overflow-hidden group"
               style={{ height: '520px', background: '#111009' }}>
               <img
-                src={product.images?.[selectedImage] || product.image}
+                src={images[selectedImage] || product.image}
                 alt={product.name}
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
               />
@@ -118,9 +180,10 @@ export default function ProductDetail() {
               )}
             </div>
 
-            {product.images && product.images.length > 1 && (
+            {/* Thumbnails */}
+            {images.length > 1 && (
               <div className="flex gap-3">
-                {product.images.map((img, i) => (
+                {images.map((img, i) => (
                   <button key={i}
                     onClick={() => setSelectedImage(i)}
                     className="flex-1 overflow-hidden transition-all duration-300"
@@ -154,6 +217,8 @@ export default function ProductDetail() {
               }}>
               {product.name}
             </h1>
+
+            {/* Rating */}
             <div className="flex items-center gap-3 mb-6">
               <div className="flex items-center gap-1">
                 {[...Array(5)].map((_, i) => (
@@ -169,6 +234,8 @@ export default function ProductDetail() {
                 ({product.reviews} reviews)
               </span>
             </div>
+
+            {/* Price */}
             <div className="flex items-baseline gap-4 mb-6 pb-6"
               style={{ borderBottom: '1px solid rgba(201,169,110,0.15)' }}>
               <span className="text-3xl font-light"
@@ -194,6 +261,7 @@ export default function ProductDetail() {
               )}
             </div>
 
+            {/* Shades */}
             {product.shades && product.shades.length > 0 && (
               <div className="mb-6">
                 <p className="text-xs tracking-widest uppercase mb-3"
@@ -218,6 +286,7 @@ export default function ProductDetail() {
               </div>
             )}
 
+            {/* Quantity */}
             <div className="mb-6">
               <p className="text-xs tracking-widest uppercase mb-3"
                 style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
@@ -250,6 +319,7 @@ export default function ProductDetail() {
               </div>
             </div>
 
+            {/* Add to Cart */}
             <div className="flex gap-3 mb-8">
               <button
                 onClick={handleAddToCart}
@@ -276,13 +346,14 @@ export default function ProductDetail() {
               </button>
             </div>
 
+            {/* Features */}
             <div className="space-y-3 mb-8 p-4"
               style={{ background: '#111009', border: '1px solid rgba(201,169,110,0.1)' }}>
               {[
                 { icon: FiTruck, text: 'Free shipping on orders over $100' },
                 { icon: FiRefreshCw, text: '30-day hassle-free returns' },
                 { icon: FiShield, text: '100% authentic luxury products' },
-              ].map(({ icon:Icon,text }) => (
+              ].map(({ icon: Icon, text }) => (
                 <div key={text} className="flex items-center gap-3">
                   <Icon size={14} style={{ color: '#c9a96e' }} />
                   <span className="text-xs tracking-wider"
@@ -293,6 +364,7 @@ export default function ProductDetail() {
               ))}
             </div>
 
+            {/* Tabs */}
             <div>
               <div className="flex gap-6 mb-4"
                 style={{ borderBottom: '1px solid rgba(201,169,110,0.15)' }}>
@@ -312,7 +384,9 @@ export default function ProductDetail() {
               </div>
               <div className="text-sm leading-relaxed"
                 style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
-                {activeTab === 'description' && <p>{product.description}</p>}
+                {activeTab === 'description' && (
+                  <p>{product.description || 'A luxurious product crafted with the finest ingredients.'}</p>
+                )}
                 {activeTab === 'ingredients' && (
                   <p>Aqua, Cyclopentasiloxane, Glycerin, Niacinamide, Hyaluronic Acid, Vitamin E Acetate, Jojoba Oil, Rosa Damascena Extract, 24K Gold Flakes, Retinol, Peptide Complex, Fragrance.</p>
                 )}

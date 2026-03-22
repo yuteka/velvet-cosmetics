@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { FiHeart, FiShoppingBag, FiStar, FiArrowRight, FiChevronLeft, FiChevronRight } from 'react-icons/fi';
-import { products, categories } from '../data/products';
+import { products as staticProducts, categories } from '../data/products';
 import { useCart } from '../context/CartContext';
-import { getImageUrl } from '../lib/supabase';
+import { getImageUrl, supabase } from '../lib/supabase';
 
 function ProductCard({ product, addToCart, toggleWishlist, isWishlisted }) {
   const [currentImg, setCurrentImg] = useState(0);
@@ -11,7 +11,6 @@ function ProductCard({ product, addToCart, toggleWishlist, isWishlisted }) {
   const touchStartX = useRef(0);
   const intervalRef = useRef(null);
 
-  //  Auto slide every 2 seconds
   useEffect(() => {
     if (images.length <= 1) return;
     intervalRef.current = setInterval(() => {
@@ -166,10 +165,11 @@ function ProductCard({ product, addToCart, toggleWishlist, isWishlisted }) {
               style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
               ${product.price}
             </span>
-            {product.originalPrice > product.price && (
+            {/* ✅ support both originalPrice (static) and original_price (supabase) */}
+            {(product.originalPrice || product.original_price) > product.price && (
               <span className="text-xs line-through"
                 style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
-                ${product.originalPrice}
+                ${product.originalPrice || product.original_price}
               </span>
             )}
           </div>
@@ -194,28 +194,53 @@ function ProductCard({ product, addToCart, toggleWishlist, isWishlisted }) {
 export default function Home() {
   const [searchParams] = useSearchParams();
   const [activeCategory, setActiveCategory] = useState('All');
-  const [filteredProducts, setFilteredProducts] = useState(products);
+  const [allProducts, setAllProducts] = useState(staticProducts);
+  const [filteredProducts, setFilteredProducts] = useState(staticProducts);
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
+
+  // ✅ Fetch Supabase products and merge with static products
+  useEffect(() => {
+    const fetchSupabaseProducts = async () => {
+      const { data } = await supabase
+        .from('products')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (data && data.length > 0) {
+        // Normalize Supabase product fields to match static product fields
+        const normalized = data.map(p => ({
+          ...p,
+          originalPrice: p.original_price,
+          inStock: p.in_stock,
+        }));
+        // Merge: static products first, then Supabase products
+        const merged = [...staticProducts, ...normalized];
+        setAllProducts(merged);
+        setFilteredProducts(merged);
+      }
+    };
+    fetchSupabaseProducts();
+  }, []);
 
   useEffect(() => {
     const category = searchParams.get('category');
     const search = searchParams.get('search');
     if (category) setActiveCategory(category);
     if (search) {
-      setFilteredProducts(products.filter(p =>
+      setFilteredProducts(allProducts.filter(p =>
         p.name.toLowerCase().includes(search.toLowerCase()) ||
         p.category.toLowerCase().includes(search.toLowerCase())
       ));
     }
-  }, [searchParams]);
+  }, [searchParams, allProducts]);
 
   useEffect(() => {
     if (activeCategory === 'All') {
-      setFilteredProducts(products);
+      setFilteredProducts(allProducts);
     } else {
-      setFilteredProducts(products.filter(p => p.category === activeCategory));
+      setFilteredProducts(allProducts.filter(p => p.category === activeCategory));
     }
-  }, [activeCategory]);
+  }, [activeCategory, allProducts]);
 
   return (
     <div style={{ background: '#0a0806', minHeight: '100vh' }}>

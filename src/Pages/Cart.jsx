@@ -5,26 +5,64 @@ import {
 } from 'react-icons/fi';
 import { useCart } from '../context/CartContext';
 import { useState } from 'react';
+import { supabase } from '../lib/supabase'; // ✅ import supabase
 
 export default function Cart() {
   const { cartItems, removeFromCart, updateQty, cartTotal, shipping, cartGrandTotal, clearCart } = useCart();
   const [coupon, setCoupon] = useState('');
   const [couponApplied, setCouponApplied] = useState(false);
+  const [couponData, setCouponData] = useState(null); // ✅ store full coupon from DB
   const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false); // ✅ loading state
   const navigate = useNavigate();
 
-  const handleCoupon = () => {
-    if (coupon.toUpperCase() === 'VELVET20') {
-      setCouponApplied(true);
-      setCouponError('');
-    } else {
-      setCouponError('Invalid coupon code.');
-      setCouponApplied(false);
+  // ✅ Supabase-connected coupon validation
+  const handleCoupon = async () => {
+    if (!coupon.trim()) return;
+    setCouponLoading(true);
+    setCouponError('');
+    setCouponApplied(false);
+    setCouponData(null);
+
+    const { data, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .eq('code', coupon.toUpperCase().trim())
+      .eq('active', true)
+      .single();
+
+    if (error || !data) {
+      setCouponError('Invalid or expired coupon code.');
+      setCouponLoading(false);
+      return;
     }
+
+    if (data.min_order > 0 && cartTotal < data.min_order) {
+      setCouponError(`Minimum order ₹${data.min_order} required for this coupon.`);
+      setCouponLoading(false);
+      return;
+    }
+
+    setCouponApplied(true);
+    setCouponData(data);
+    setCouponLoading(false);
   };
 
-  const discount = couponApplied ? cartTotal * 0.2 : 0;
+  // ✅ Dynamic discount based on coupon type
+  const discount = couponApplied && couponData
+    ? couponData.type === 'percentage'
+      ? cartTotal * (couponData.discount / 100)
+      : Math.min(couponData.discount, cartTotal) // fixed — can't exceed cart total
+    : 0;
+
   const finalTotal = cartGrandTotal - discount;
+
+  const removeCoupon = () => {
+    setCouponApplied(false);
+    setCouponData(null);
+    setCoupon('');
+    setCouponError('');
+  };
 
   if (cartItems.length === 0) {
     return (
@@ -45,12 +83,7 @@ export default function Cart() {
           </p>
           <Link to="/"
             className="inline-block px-10 py-4 text-xs tracking-widest uppercase transition-all duration-300 hover:opacity-80"
-            style={{
-              background: '#c9a96e',
-              color: '#0a0806',
-              fontFamily: 'Montserrat, sans-serif',
-              fontWeight: 600,
-            }}>
+            style={{ background: '#c9a96e', color: '#0a0806', fontFamily: 'Montserrat, sans-serif', fontWeight: 600 }}>
             Continue Shopping
           </Link>
         </div>
@@ -99,7 +132,6 @@ export default function Cart() {
 
                 {/* Product */}
                 <div className="col-span-12 md:col-span-6 flex gap-4">
-                  {/* ✅ FIXED: slug */}
                   <Link to={`/product/${item.slug}`}>
                     <div className="overflow-hidden flex-shrink-0"
                       style={{ width: '90px', height: '110px', background: '#111009' }}>
@@ -113,7 +145,6 @@ export default function Cart() {
                         style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
                         {item.category}
                       </p>
-                      {/* ✅ FIXED: slug */}
                       <Link to={`/product/${item.slug}`}>
                         <h3 className="font-light mb-1 hover:text-yellow-300 transition-colors"
                           style={{ fontFamily: 'Cormorant Garamond, serif', color: '#faf8f4', fontSize: '1.1rem' }}>
@@ -144,18 +175,15 @@ export default function Cart() {
 
                 {/* Price */}
                 <div className="col-span-4 md:col-span-2 text-center">
-                  <span className="text-sm"
-                    style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
+                  <span className="text-sm" style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
                     ${item.price}
                   </span>
                 </div>
 
                 {/* Quantity */}
                 <div className="col-span-4 md:col-span-2 flex justify-center">
-                  <div className="flex items-center border"
-                    style={{ borderColor: 'rgba(201,169,110,0.3)' }}>
-                    <button
-                      onClick={() => updateQty(item.id, item.shade, item.qty - 1)}
+                  <div className="flex items-center border" style={{ borderColor: 'rgba(201,169,110,0.3)' }}>
+                    <button onClick={() => updateQty(item.id, item.shade, item.qty - 1)}
                       className="w-8 h-8 flex items-center justify-center transition-all duration-300 hover:opacity-70"
                       style={{ color: '#c9a96e' }}>
                       <FiMinus size={11} />
@@ -164,8 +192,7 @@ export default function Cart() {
                       style={{ color: '#faf8f4', fontFamily: 'Montserrat, sans-serif' }}>
                       {item.qty}
                     </span>
-                    <button
-                      onClick={() => updateQty(item.id, item.shade, item.qty + 1)}
+                    <button onClick={() => updateQty(item.id, item.shade, item.qty + 1)}
                       className="w-8 h-8 flex items-center justify-center transition-all duration-300 hover:opacity-70"
                       style={{ color: '#c9a96e' }}>
                       <FiPlus size={11} />
@@ -192,8 +219,7 @@ export default function Cart() {
                 onMouseLeave={e => e.currentTarget.style.color = '#7a6e5f'}>
                 <FiArrowLeft size={12} /> Continue Shopping
               </Link>
-              <button
-                onClick={clearCart}
+              <button onClick={clearCart}
                 className="text-xs tracking-widest uppercase transition-all duration-300"
                 style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#e8a09a'}
@@ -212,47 +238,77 @@ export default function Cart() {
                 Order Summary
               </h2>
 
-              {/* Coupon */}
+              {/* ✅ Coupon Section */}
               <div className="mb-6">
                 <p className="text-xs tracking-widest uppercase mb-3"
                   style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
                   Coupon Code
                 </p>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <FiTag size={12} className="absolute left-3 top-1/2 -translate-y-1/2"
-                      style={{ color: '#7a6e5f' }} />
-                    <input
-                      type="text"
-                      value={coupon}
-                      onChange={e => { setCoupon(e.target.value); setCouponError(''); }}
-                      placeholder="VELVET20"
-                      className="w-full bg-transparent border pl-8 pr-3 py-2 text-xs outline-none tracking-wider"
-                      style={{
-                        borderColor: couponApplied ? '#c9a96e' : 'rgba(201,169,110,0.3)',
-                        color: '#faf8f4',
-                        fontFamily: 'Montserrat, sans-serif',
-                      }}
-                    />
+
+                {/* Applied state */}
+                {couponApplied && couponData ? (
+                  <div className="flex items-center justify-between px-3 py-2.5"
+                    style={{ background: 'rgba(201,169,110,0.08)', border: '1px solid rgba(201,169,110,0.3)' }}>
+                    <div className="flex items-center gap-2">
+                      <FiTag size={12} style={{ color: '#c9a96e' }} />
+                      <span className="text-xs tracking-wider font-medium"
+                        style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
+                        {couponData.code}
+                      </span>
+                    </div>
+                    <button onClick={removeCoupon}
+                      className="text-xs tracking-wider transition-all duration-200 hover:opacity-70"
+                      style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
+                      Remove
+                    </button>
                   </div>
-                  <button
-                    onClick={handleCoupon}
-                    className="px-4 py-2 text-xs tracking-widest uppercase transition-all duration-300 hover:opacity-80"
-                    style={{
-                      background: '#c9a96e',
-                      color: '#0a0806',
-                      fontFamily: 'Montserrat, sans-serif',
-                      fontWeight: 600,
-                    }}>
-                    Apply
-                  </button>
-                </div>
-                {couponApplied && (
+                ) : (
+                  /* Input state */
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <FiTag size={12} className="absolute left-3 top-1/2 -translate-y-1/2"
+                        style={{ color: '#7a6e5f' }} />
+                      <input
+                        type="text"
+                        value={coupon}
+                        onChange={e => { setCoupon(e.target.value); setCouponError(''); }}
+                        onKeyDown={e => e.key === 'Enter' && handleCoupon()}
+                        placeholder="Enter coupon code"
+                        className="w-full bg-transparent border pl-8 pr-3 py-2 text-xs outline-none tracking-wider uppercase"
+                        style={{
+                          borderColor: couponError ? 'rgba(232,160,154,0.5)' : 'rgba(201,169,110,0.3)',
+                          color: '#faf8f4',
+                          fontFamily: 'Montserrat, sans-serif',
+                        }}
+                      />
+                    </div>
+                    <button
+                      onClick={handleCoupon}
+                      disabled={couponLoading || !coupon.trim()}
+                      className="px-4 py-2 text-xs tracking-widest uppercase transition-all duration-300 hover:opacity-80 disabled:opacity-50"
+                      style={{
+                        background: '#c9a96e',
+                        color: '#0a0806',
+                        fontFamily: 'Montserrat, sans-serif',
+                        fontWeight: 600,
+                        minWidth: '64px',
+                      }}>
+                      {couponLoading ? '...' : 'Apply'}
+                    </button>
+                  </div>
+                )}
+
+                {/* Success message */}
+                {couponApplied && couponData && (
                   <p className="text-xs mt-2 tracking-wider"
                     style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
-                    ✓ 20% discount applied!
+                    ✓ {couponData.type === 'percentage'
+                      ? `${couponData.discount}% discount applied!`
+                      : `₹${couponData.discount} off applied!`}
                   </p>
                 )}
+
+                {/* Error message */}
                 {couponError && (
                   <p className="text-xs mt-2 tracking-wider"
                     style={{ color: '#e8a09a', fontFamily: 'Montserrat, sans-serif' }}>
@@ -269,13 +325,20 @@ export default function Cart() {
                   <span>Subtotal</span>
                   <span>${cartTotal.toFixed(2)}</span>
                 </div>
-                {couponApplied && (
+
+                {/* ✅ Dynamic discount line */}
+                {couponApplied && couponData && (
                   <div className="flex justify-between text-xs tracking-wider"
                     style={{ color: '#c9a96e', fontFamily: 'Montserrat, sans-serif' }}>
-                    <span>Discount (20%)</span>
+                    <span>
+                      Discount ({couponData.type === 'percentage'
+                        ? `${couponData.discount}%`
+                        : `₹${couponData.discount} off`})
+                    </span>
                     <span>-${discount.toFixed(2)}</span>
                   </div>
                 )}
+
                 <div className="flex justify-between text-xs tracking-wider"
                   style={{ color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
                   <span className="flex items-center gap-1">
@@ -324,13 +387,8 @@ export default function Cart() {
               {/* Payment Icons */}
               <div className="flex items-center justify-center gap-3 mt-6">
                 {['VISA', 'MC', 'AMEX', 'PayPal'].map(card => (
-                  <span key={card}
-                    className="text-xs px-2 py-1 border tracking-wider"
-                    style={{
-                      borderColor: 'rgba(201,169,110,0.2)',
-                      color: '#7a6e5f',
-                      fontFamily: 'Montserrat, sans-serif',
-                    }}>
+                  <span key={card} className="text-xs px-2 py-1 border tracking-wider"
+                    style={{ borderColor: 'rgba(201,169,110,0.2)', color: '#7a6e5f', fontFamily: 'Montserrat, sans-serif' }}>
                     {card}
                   </span>
                 ))}
