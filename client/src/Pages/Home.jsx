@@ -76,6 +76,7 @@ function ProductCard({ product }) {
 
       {/* Wishlist */}
       <button
+        aria-label="Add to wishlist"
         onClick={() => {
           const currentlyWishlisted = isWishlisted(product.id);
           dispatch(toggleWishlist(product));
@@ -107,6 +108,7 @@ function ProductCard({ product }) {
               <div key={i} className="w-full h-full flex-shrink-0 overflow-hidden"
                 style={{ minWidth: '100%' }}>
                 <img src={img} alt={`${product.name} ${i + 1}`}
+                  loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-700 ease-in-out group-hover:scale-105"
                   draggable="false"
                   style={{ minWidth: '100%' }} />
@@ -118,12 +120,16 @@ function ProductCard({ product }) {
         {/* Prev/Next arrows */}
         {images.length > 1 && (
           <>
-            <button onClick={prevImg}
+            <button
+              aria-label="Previous image"
+              onClick={prevImg}
               className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
               style={{ background: 'rgba(10,8,6,0.7)', color: '#c9a96e', zIndex: 10 }}>
               <FiChevronLeft size={14} />
             </button>
-            <button onClick={nextImg}
+            <button
+              aria-label="Next image"
+              onClick={nextImg}
               className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300"
               style={{ background: 'rgba(10,8,6,0.7)', color: '#c9a96e', zIndex: 10 }}>
               <FiChevronRight size={14} />
@@ -278,9 +284,11 @@ export default function Home() {
       {/* HERO SECTION */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
+         // Hero image
           <img
             src={getImageUrl('hero/hero.jpg')}
-            alt="hero"
+            alt="Velvet Luxury Cosmetics hero"
+            loading="eager"   // hero image eager
             className="w-full h-full object-contain md:object-cover"
             style={{ opacity: 0.3 }}
           />
@@ -363,6 +371,7 @@ export default function Home() {
               style={{ height: '400px' }}
               onClick={() => setActiveCategory(cat.name)}>
               <img src={cat.image} alt={cat.name}
+                loading="lazy"
                 className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                 style={{ opacity: 0.6 }} />
               <div className="absolute inset-0 flex items-center justify-center"
