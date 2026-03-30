@@ -284,11 +284,10 @@ export default function Home() {
       {/* HERO SECTION */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0">
-         // Hero image
           <img
             src={getImageUrl('hero/hero.jpg')}
             alt="Velvet Luxury Cosmetics hero"
-            loading="eager"   // hero image eager
+            loading="eager"
             className="w-full h-full object-contain md:object-cover"
             style={{ opacity: 0.3 }}
           />
