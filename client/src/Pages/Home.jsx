@@ -7,7 +7,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { addToCart } from '../store/slices/cartSlice';
 import { toggleWishlist } from '../store/slices/wishlistSlice';
 import { showNotification } from '../store/slices/notificationSlice';
-
+import SEO from '../components/SEO';
 function ProductCard({ product }) {
   const dispatch = useDispatch();
   const wishlistItems = useSelector(state => state.wishlist.items);
@@ -79,9 +79,9 @@ function ProductCard({ product }) {
         onClick={() => {
           const currentlyWishlisted = isWishlisted(product.id);
           dispatch(toggleWishlist(product));
-          dispatch(showNotification({ 
-            message: currentlyWishlisted ? 'Removed from wishlist' : 'Added to wishlist', 
-            type: 'success' 
+          dispatch(showNotification({
+            message: currentlyWishlisted ? 'Removed from wishlist' : 'Added to wishlist',
+            type: 'success'
           }));
         }}
         className="absolute top-3 right-3 z-10 w-8 h-8 flex items-center justify-center transition-all duration-300"
@@ -267,6 +267,13 @@ export default function Home() {
 
   return (
     <div style={{ background: '#0a0806', minHeight: '100vh' }}>
+
+      <SEO
+        title="Luxury Cosmetics & Beauty Products"
+        description="Shop premium luxury cosmetics, skincare, makeup & fragrance at Velvet Luxury Cosmetics. Free shipping over $100. Cruelty free & vegan formulas."
+        keywords="luxury cosmetics, skincare, makeup, beauty products, vegan cosmetics, cruelty free makeup, fragrance, velvet cosmetics"
+      />
+
 
       {/* HERO SECTION */}
       <section className="relative min-h-screen flex items-center justify-center overflow-hidden">

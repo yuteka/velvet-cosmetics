@@ -9,6 +9,7 @@ import { addToCart } from '../store/slices/cartSlice';
 import { toggleWishlist } from '../store/slices/wishlistSlice';
 import { products as staticProducts } from '../data/products';
 import { supabase } from '../lib/supabase';
+import SEO from '../components/SEO';
 
 export default function ProductDetail() {
   const { slug } = useParams();
@@ -127,7 +128,12 @@ export default function ProductDetail() {
 
   return (
     <div style={{ background: '#0a0806', minHeight: '100vh', paddingTop: '80px' }}>
-
+      {/* ADD THIS — dynamic per product */}
+      <SEO
+        title={product.name}
+        description={product.description || `Buy ${product.name} - ${product.category} at Velvet Luxury Cosmetics. Rated ${product.rating}/5 by ${product.reviews} customers.`}
+        keywords={`${product.name}, ${product.category}, luxury cosmetics, buy ${product.category} online, velvet cosmetics`}
+      />
       {/* Breadcrumb */}
       <div className="max-w-7xl mx-auto px-6 py-4" style={{ paddingTop: '2rem' }}>
         <div className="flex items-center gap-2 text-xs tracking-wider"

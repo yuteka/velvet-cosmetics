@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
@@ -16,29 +16,28 @@ import Wishlist from './Pages/Wishlist';
 import Profile from './Pages/Profile';
 import Chatbot from './components/Chatbot';
 import Toast from './components/Toast';
+
 export default function App() {
   return (
     <AuthProvider>
       <CartProvider>
-        <BrowserRouter>
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/product/:slug" element={<ProductDetail />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/cart" element={<Cart />} />
-            <Route path="/payment" element={<Payment />} />
-            <Route path="/orders" element={<Orders />} />
-            <Route path="/track/:orderId" element={<OrderTrack />} />
-            <Route path="/wishlist" element={<Wishlist />} />
-            <Route path="/profile" element={<Profile />} />
-          </Routes>
-          <Footer />
-          <Chatbot/>
-          <Toast/>
-        </BrowserRouter>
+        <Navbar />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/product/:slug" element={<ProductDetail />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/payment" element={<Payment />} />
+          <Route path="/orders" element={<Orders />} />
+          <Route path="/track/:orderId" element={<OrderTrack />} />
+          <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/profile" element={<Profile />} />
+        </Routes>
+        <Footer />
+        <Chatbot />
+        <Toast />
       </CartProvider>
     </AuthProvider>
   );
